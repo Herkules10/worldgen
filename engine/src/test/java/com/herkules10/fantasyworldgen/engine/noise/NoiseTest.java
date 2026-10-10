@@ -3,6 +3,9 @@ package com.herkules10.fantasyworldgen.engine.noise;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.junit.jupiter.api.Test;
 
 class NoiseTest {
@@ -34,5 +37,23 @@ class NoiseTest {
             anyDifferent |= a.sample(x, -x * 3) != other.sample(x, -x * 3);
         }
         assertTrue(anyDifferent);
+    }
+
+    @Test
+    void fractalNoiseHasNoSeedIndependentPoints() {
+        // GradientNoise is 0 on its lattice, and without per-octave offsets every octave's lattice contains the
+        // multiples of the wavelength, so the origin (and a grid one wavelength apart) would read 0 for every seed.
+        double[][] points = {{0, 0}, {512, 0}, {-1024, 2048}};
+        for (double[] p : points) {
+            Set<Double> values = new HashSet<>();
+            int nearZero = 0;
+            for (long seed = -50; seed < 50; seed++) {
+                double v = new FractalNoise(Hashing.mix(seed), 5, 512).sample(p[0], p[1]);
+                values.add(v);
+                if (Math.abs(v) < 1e-3) nearZero++;
+            }
+            assertTrue(values.size() > 95, values.size() + " distinct values at " + p[0] + ", " + p[1]);
+            assertTrue(nearZero < 5, nearZero + " seeds give ~0 at " + p[0] + ", " + p[1]);
+        }
     }
 }

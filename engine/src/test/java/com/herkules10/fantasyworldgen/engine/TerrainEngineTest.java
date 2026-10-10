@@ -4,7 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.junit.jupiter.api.Test;
+
+import com.herkules10.fantasyworldgen.engine.noise.Hashing;
 
 class TerrainEngineTest {
     @Test
@@ -22,6 +27,19 @@ class TerrainEngineTest {
             if (Determinism.fingerprint(a, c[0], c[1]) != Determinism.fingerprint(b, c[0], c[1])) differing++;
         }
         assertTrue(differing >= Determinism.SAMPLE_CHUNKS.length - 1, "only " + differing + " sample chunks differ");
+    }
+
+    @Test
+    void originDependsOnSeed() {
+        Set<Double> continentalness = new HashSet<>();
+        Set<Integer> surface = new HashSet<>();
+        for (long seed = 0; seed < 24; seed++) {
+            TerrainEngine.Column c = new TerrainEngine(Hashing.mix(seed)).column(0, 0);
+            continentalness.add(c.fields().continentalness());
+            surface.add(c.surfaceY());
+        }
+        assertEquals(24, continentalness.size(), "continentalness at the origin repeats across seeds");
+        assertTrue(surface.size() >= 8, "only " + surface.size() + " distinct origin heights over 24 seeds");
     }
 
     @Test
