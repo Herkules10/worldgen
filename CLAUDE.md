@@ -49,6 +49,9 @@ with its own terrain generation engine for epic fantasy landscapes.
   would load them in GameTests and renders too. GameTests run in `mod/run-gametest/`.
 - Every engine `BiomeType` needs `data/fantasyworldgen/worldgen/biome/<id>.json` and a
   `biome.fantasyworldgen.<id>` lang key; a GameTest checks registration.
+- Vanilla decoration isn't fully seeded: `BeehiveDecorator` used an unseeded global shuffle (fixed by
+  `mixin/BeehiveDecoratorMixin`). If identical render args ever give different pixels, dump the differing
+  blocks and look for `Collections.shuffle`/`Math.random`/`new Random()` in the feature that placed them.
 
 ## engine/ gotchas
 - Transcendental math only via `Maths` (StrictMath): `Math.sin/pow/hypot` may differ

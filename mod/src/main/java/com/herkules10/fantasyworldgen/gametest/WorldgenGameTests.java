@@ -1,5 +1,9 @@
 package com.herkules10.fantasyworldgen.gametest;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import com.herkules10.fantasyworldgen.FantasyWorldgen;
 import com.herkules10.fantasyworldgen.engine.Block;
 import com.herkules10.fantasyworldgen.engine.TerrainEngine;
@@ -18,6 +22,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.block.state.BlockState;
@@ -30,6 +35,8 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
+import net.minecraft.world.level.levelgen.feature.treedecorators.BeehiveDecorator;
+import net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecorator;
 import net.minecraft.world.level.levelgen.presets.WorldPreset;
 import net.minecraft.world.level.storage.ServerLevelData;
 import net.neoforged.neoforge.common.NeoForge;
@@ -179,6 +186,27 @@ public final class WorldgenGameTests {
         LevelEvent.CreateSpawnPosition event = NeoForge.EVENT_BUS.post(new LevelEvent.CreateSpawnPosition(helper.getLevel(), data));
         helper.assertFalse(event.isCanceled(), "spawn event canceled for a non-engine level");
         helper.assertValueEqual(data.getSpawnPos(), before, "spawn of a non-engine level");
+        helper.succeed();
+    }
+
+    /**
+     * Bee nests depend only on the tree's seeded random (vanilla shuffles their side with an unseeded global random,
+     * see {@code BeehiveDecoratorMixin}). Three free sides, so an unseeded shuffle almost surely varies over 16 runs.
+     */
+    @GameTest(template = EMPTY)
+    public static void beeNestPlacementIsSeeded(GameTestHelper helper) {
+        BlockPos base = helper.absolutePos(new BlockPos(1, 2, 1));
+        Set<BlockPos> logs = Set.of(base, base.above(), base.above(2));
+        BlockPos first = null;
+        for (int run = 0; run < 16; run++) {
+            List<BlockPos> nests = new ArrayList<>();
+            var context = new TreeDecorator.Context(helper.getLevel(), (pos, state) -> nests.add(pos.immutable()),
+                    RandomSource.create(1234), logs, Set.of(), Set.of());
+            new BeehiveDecorator(1.0f).place(context);
+            helper.assertValueEqual(nests.size(), 1, "bee nests placed");
+            if (first == null) first = nests.get(0);
+            helper.assertValueEqual(nests.get(0), first, "bee nest position in run " + run);
+        }
         helper.succeed();
     }
 

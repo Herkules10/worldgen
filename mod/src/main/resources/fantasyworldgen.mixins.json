@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.herkules10.fantasyworldgen.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BeehiveDecoratorMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
