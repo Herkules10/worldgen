@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 
 import com.herkules10.fantasyworldgen.render.TerrainRenderer;
 import com.herkules10.fantasyworldgen.worldgen.ModWorldgen;
+import com.herkules10.fantasyworldgen.worldgen.WorldSpawn;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.resources.ResourceLocation;
@@ -21,6 +22,7 @@ public final class FantasyWorldgen {
 
     public FantasyWorldgen(IEventBus modEventBus) {
         ModWorldgen.register(modEventBus);
+        WorldSpawn.register();
 
         // Headless terrain renders for `./gradlew runRender`; no-op otherwise.
         TerrainRenderer.registerIfEnabled();

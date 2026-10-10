@@ -33,6 +33,14 @@ public final class TerrainEngine {
      */
     public record Column(int surfaceY, BiomeType biome, BiomeType paletteBiome, double land, FieldSample fields) {}
 
+    /**
+     * Where new worlds put the player.
+     *
+     * @param y     feet height: one above the surface block
+     * @param biome dominant biome of the spawn column
+     */
+    public record Spawn(int x, int y, int z, BiomeType biome) {}
+
     public TerrainEngine(long seed) {
         this.seed = seed;
         this.paletteSeed = Hashing.derive(seed, "palette_dither");
@@ -77,6 +85,15 @@ public final class TerrainEngine {
     /** The dominant biome at (x, z). */
     public BiomeType biomeAt(int x, int z) {
         return column(x, z).biome();
+    }
+
+    /**
+     * The world spawn: dry, gently sloped land near the origin, preferably in the calm Wilds. Searches a fixed spiral
+     * outward from 0, 0, so it is a pure function of the seed. Costs up to some tens of thousands of column samples;
+     * call once per world.
+     */
+    public Spawn findSpawn() {
+        return SpawnFinder.find(this);
     }
 
     public Block blockAt(int x, int y, int z) {
