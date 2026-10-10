@@ -7,3 +7,10 @@ pluginManagement {
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
+
+rootProject.name = 'fantasyworldgen'
+
+// engine:  pure-Java terrain engine (no Minecraft)
+// preview: CLI that renders engine output to PNGs
+// mod:     thin NeoForge adapter
+include 'engine', 'preview', 'mod'

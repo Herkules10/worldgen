@@ -1,0 +1,34 @@
+{
+  "dimensions": {
+    "minecraft:overworld": {
+      "type": "fantasyworldgen:overworld",
+      "generator": {
+        "type": "fantasyworldgen:fantasy",
+        "biome_source": {
+          "type": "fantasyworldgen:fantasy"
+        }
+      }
+    },
+    "minecraft:the_end": {
+      "type": "minecraft:the_end",
+      "generator": {
+        "type": "minecraft:noise",
+        "biome_source": {
+          "type": "minecraft:the_end"
+        },
+        "settings": "minecraft:end"
+      }
+    },
+    "minecraft:the_nether": {
+      "type": "minecraft:the_nether",
+      "generator": {
+        "type": "minecraft:noise",
+        "biome_source": {
+          "type": "minecraft:multi_noise",
+          "preset": "minecraft:nether"
+        },
+        "settings": "minecraft:nether"
+      }
+    }
+  }
+}

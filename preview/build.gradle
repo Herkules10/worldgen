@@ -1,0 +1,31 @@
+// Renders engine output to PNGs: `./gradlew :preview:run --args="--seed 42 --size 2048"` -> build/previews/
+plugins {
+    id 'application'
+}
+
+version = mod_version
+group = mod_group_id
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':engine')
+}
+
+application {
+    mainClass = 'com.herkules10.fantasyworldgen.preview.PreviewMain'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+def previewOut = rootProject.layout.buildDirectory.dir('previews').get().asFile.absolutePath
+tasks.named('run', JavaExec) {
+    systemProperty 'java.awt.headless', 'true'
+    systemProperty 'fantasyworldgen.preview.out', previewOut
+}

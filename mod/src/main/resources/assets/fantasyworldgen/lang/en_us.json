@@ -1,0 +1,15 @@
+{
+  "generator.fantasyworldgen.fantasy": "Fantasy Worldgen",
+
+  "biome.fantasyworldgen.ocean": "Ocean",
+  "biome.fantasyworldgen.wilds": "Wilds",
+  "biome.fantasyworldgen.spine": "The Spine of the World",
+  "biome.fantasyworldgen.glass_waste": "The Glass Waste",
+  "biome.fantasyworldgen.dragonscale": "The Sleeping Hides",
+  "biome.fantasyworldgen.scar": "The Scar",
+  "biome.fantasyworldgen.stilled_colossi": "The Stilled Colossi",
+  "biome.fantasyworldgen.canopy_cathedral": "The Canopy Cathedral",
+  "biome.fantasyworldgen.frozen_wave": "The Frozen Wave",
+  "biome.fantasyworldgen.thousand_stairs": "The Thousand Stairs",
+  "biome.fantasyworldgen.lantern_marsh": "The Lantern Marsh"
+}
