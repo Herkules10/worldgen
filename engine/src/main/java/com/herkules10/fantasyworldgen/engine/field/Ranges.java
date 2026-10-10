@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.herkules10.fantasyworldgen.engine.Maths;
 import com.herkules10.fantasyworldgen.engine.noise.Hashing;
+import com.herkules10.fantasyworldgen.engine.noise.Rng;
 
 /**
  * The Spine's mountain ranges as explicit ridgelines rather than noise: each range is a gently curving polyline
@@ -133,19 +134,5 @@ public final class Ranges {
             maxZ = Math.max(maxZ, zs[i]);
         }
         return new Range[] {new Range(xs, zs, crest, halfWidth, minX - halfWidth, maxX + halfWidth, minZ - halfWidth, maxZ + halfWidth)};
-    }
-
-    /** Sequential numbers from one hash, for building a single feature. Local to one call, never shared. */
-    static final class Rng {
-        private long state;
-
-        Rng(long seed) {
-            this.state = seed;
-        }
-
-        double next() {
-            state += 0x9E3779B97F4A7C15L;
-            return Maths.unit(Hashing.mix(state));
-        }
     }
 }

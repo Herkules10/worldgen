@@ -7,31 +7,38 @@ import com.herkules10.fantasyworldgen.engine.biome.Palettes;
 import com.herkules10.fantasyworldgen.engine.field.FieldSample;
 import com.herkules10.fantasyworldgen.engine.field.WorldFields;
 import com.herkules10.fantasyworldgen.engine.noise.Hashing;
+import com.herkules10.fantasyworldgen.engine.region.Region;
+import com.herkules10.fantasyworldgen.engine.region.RegionMap;
+import com.herkules10.fantasyworldgen.engine.variant.Families;
 
 /**
  * Entry point of the terrain engine: everything about the world is a pure function of the seed and the coordinates.
  * Instances are thread-safe; chunks can be generated in any order, on any thread.
  * <p>
  * Pipeline per column: shared {@link WorldFields} (continents, ranges, wind and rain shadow, heat, corruption) →
- * biome blend weights ({@link BiomePlacement}) → blended landform height ({@link Landforms}) → surface blocks
- * ({@link Palettes}). Landforms and palettes are still placeholders.
+ * biome blend weights ({@link BiomePlacement}) → blended landform height ({@link Landforms}) → region and variant
+ * ({@link RegionMap}) → surface blocks ({@link Palettes}). Landforms and most palettes are still placeholders.
  */
 public final class TerrainEngine {
     private final long seed;
     private final long paletteSeed;
     private final WorldFields fields;
     private final Landforms landforms;
+    private final RegionMap regions;
 
     /**
      * One column of the world.
      *
      * @param surfaceY     y of the highest solid block (water above it, if any, is not counted)
      * @param biome        dominant biome; what Minecraft is told
-     * @param paletteBiome biome whose blocks the surface uses; dithered across transitions so palettes don't meet in
-     *                     a hard line
-     * @param land         share of land vs ocean in [0, 1]
+     * @param paletteBiome  biome whose blocks the surface uses; dithered across transitions so palettes don't meet in
+     *                      a hard line
+     * @param paletteRegion region whose curated palette the surface uses, also dithered across region borders; null
+     *                      if the palette biome has no curated palettes yet
+     * @param land          share of land vs ocean in [0, 1]
      */
-    public record Column(int surfaceY, BiomeType biome, BiomeType paletteBiome, double land, FieldSample fields) {}
+    public record Column(int x, int z, int surfaceY, BiomeType biome, BiomeType paletteBiome, Region paletteRegion, double land,
+                         FieldSample fields) {}
 
     /**
      * Where new worlds put the player.
@@ -46,6 +53,7 @@ public final class TerrainEngine {
         this.paletteSeed = Hashing.derive(seed, "palette_dither");
         this.fields = new WorldFields(seed);
         this.landforms = new Landforms(seed);
+        this.regions = new RegionMap(seed, fields);
     }
 
     public long seed() {
@@ -74,7 +82,19 @@ public final class TerrainEngine {
 
         BiomeType biome = land < 0.5 ? BiomeType.OCEAN : BiomePlacement.dominant(weights);
         BiomeType palette = land < 0.5 ? BiomeType.OCEAN : pick(weights, Maths.unit(Hashing.hash(paletteSeed, x, z)));
-        return new Column(surface, biome, palette, land, f);
+        // Only families with curated palettes need their region per column; the rest skip the lookup.
+        Region paletteRegion = Families.of(palette).hasCuratedPalettes() ? regions.paletteRegionAt(x, z, palette) : null;
+        return new Column(x, z, surface, biome, palette, paletteRegion, land, f);
+    }
+
+    /** The region partition and variants of this world. */
+    public RegionMap regions() {
+        return regions;
+    }
+
+    /** The region of the dominant biome at (x, z): its variant, traits and place name. */
+    public Region regionAt(int x, int z) {
+        return regions.regionAt(x, z, biomeAt(x, z));
     }
 
     /** Y of the highest solid block in the column (water above it, if any, is not counted). */
@@ -102,7 +122,7 @@ public final class TerrainEngine {
 
     /** Block at height {@code y} of an already sampled column. */
     public static Block block(Column c, int y) {
-        return columnBlock(y, c.surfaceY(), c.paletteBiome());
+        return columnBlock(c, y);
     }
 
     /**
@@ -113,7 +133,7 @@ public final class TerrainEngine {
     public int fillColumn(int x, int z, Block[] out) {
         if (out.length != WorldShape.HEIGHT) throw new IllegalArgumentException("column must have " + WorldShape.HEIGHT + " entries");
         Column c = column(x, z);
-        for (int y = WorldShape.MIN_Y; y <= WorldShape.MAX_Y; y++) out[y - WorldShape.MIN_Y] = columnBlock(y, c.surfaceY(), c.paletteBiome());
+        for (int y = WorldShape.MIN_Y; y <= WorldShape.MAX_Y; y++) out[y - WorldShape.MIN_Y] = columnBlock(c, y);
         return c.surfaceY();
     }
 
@@ -124,17 +144,18 @@ public final class TerrainEngine {
             for (int lx = 0; lx < 16; lx++) {
                 Column c = column((chunkX << 4) + lx, (chunkZ << 4) + lz);
                 for (int y = WorldShape.MIN_Y, end = Math.max(c.surfaceY(), WorldShape.SEA_LEVEL - 1); y <= end; y++) {
-                    out.set(lx, y, lz, columnBlock(y, c.surfaceY(), c.paletteBiome()));
+                    out.set(lx, y, lz, columnBlock(c, y));
                 }
             }
         }
     }
 
-    private static Block columnBlock(int y, int surface, BiomeType palette) {
+    private static Block columnBlock(Column c, int y) {
+        int surface = c.surfaceY();
         if (y > surface) return y < WorldShape.SEA_LEVEL ? Block.WATER : Block.AIR;
         if (y == WorldShape.MIN_Y) return Block.BEDROCK;
-        int depth = surface - y;
-        if (depth < Palettes.SOIL_DEPTH) return Palettes.soil(palette, surface, depth);
+        Block b = Palettes.block(c.paletteBiome(), c.paletteRegion(), c.x(), y, c.z(), surface);
+        if (b != null) return b;
         return y < 0 ? Block.DEEPSLATE : Block.STONE;
     }
 

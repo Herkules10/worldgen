@@ -64,6 +64,16 @@ public final class BiomePlacement {
         for (int i = 0; i < out.length; i++) out[i] /= sum; // WILDS or SCAR is always > 0, so sum > 0
     }
 
+    /**
+     * The biome Minecraft is told at a point: ocean where the land share is below one half, else the dominant land
+     * biome. {@code TerrainEngine.column} and the region lattice both use this, so they always agree.
+     */
+    public static BiomeType biomeAt(FieldSample f, double uplift, double[] weights) {
+        if (land(f, uplift) < 0.5) return BiomeType.OCEAN;
+        landWeights(f, uplift, weights);
+        return dominant(weights);
+    }
+
     /** Index of the largest weight. */
     public static BiomeType dominant(double[] weights) {
         int best = 1;

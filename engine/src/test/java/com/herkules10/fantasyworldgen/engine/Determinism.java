@@ -41,14 +41,19 @@ public final class Determinism {
      * generation order or concurrency.
      */
     public static void assertDeterministic(LongFunction<TerrainEngine> factory, long seed) throws Exception {
+        assertDeterministic(factory, seed, SAMPLE_CHUNKS);
+    }
+
+    /** As above, for chosen chunks (e.g. inside a feature the default samples miss). */
+    public static void assertDeterministic(LongFunction<TerrainEngine> factory, long seed, int[][] chunks) throws Exception {
         TerrainEngine first = factory.apply(seed);
-        long[] expected = new long[SAMPLE_CHUNKS.length];
-        for (int i = 0; i < SAMPLE_CHUNKS.length; i++) expected[i] = fingerprint(first, SAMPLE_CHUNKS[i][0], SAMPLE_CHUNKS[i][1]);
+        long[] expected = new long[chunks.length];
+        for (int i = 0; i < chunks.length; i++) expected[i] = fingerprint(first, chunks[i][0], chunks[i][1]);
 
         TerrainEngine reversed = factory.apply(seed);
-        for (int i = SAMPLE_CHUNKS.length - 1; i >= 0; i--) {
-            assertEquals(expected[i], fingerprint(reversed, SAMPLE_CHUNKS[i][0], SAMPLE_CHUNKS[i][1]),
-                    "chunk " + SAMPLE_CHUNKS[i][0] + ", " + SAMPLE_CHUNKS[i][1] + " depends on generation order");
+        for (int i = chunks.length - 1; i >= 0; i--) {
+            assertEquals(expected[i], fingerprint(reversed, chunks[i][0], chunks[i][1]),
+                    "chunk " + chunks[i][0] + ", " + chunks[i][1] + " depends on generation order");
         }
 
         TerrainEngine shared = factory.apply(seed);
@@ -56,11 +61,11 @@ public final class Determinism {
         try {
             List<Future<Long>> results = new ArrayList<>();
             for (int round = 0; round < 3; round++) {
-                for (int[] c : SAMPLE_CHUNKS) results.add(pool.submit(() -> fingerprint(shared, c[0], c[1])));
+                for (int[] c : chunks) results.add(pool.submit(() -> fingerprint(shared, c[0], c[1])));
             }
             for (int i = 0; i < results.size(); i++) {
-                int[] c = SAMPLE_CHUNKS[i % SAMPLE_CHUNKS.length];
-                assertEquals(expected[i % SAMPLE_CHUNKS.length], results.get(i).get(),
+                int[] c = chunks[i % chunks.length];
+                assertEquals(expected[i % chunks.length], results.get(i).get(),
                         "chunk " + c[0] + ", " + c[1] + " differs when generated concurrently");
             }
         } finally {

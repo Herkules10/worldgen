@@ -55,3 +55,8 @@ with its own terrain generation engine for epic fantasy landscapes.
   between JVMs and break determinism. Caches must only hold pure-function results.
 - Placement rules from Artistic_Direction.md are tests (`BiomePlacementTest`); a tuning
   change that breaks the story fails them. Look at `_biome.png` / `_fields.png`.
+- Regions (`engine/region`) and variants (`engine/variant`): a region is a connected component of one biome
+  inside that family's Voronoi cell, on the 32-block field lattice. Lattice/cell caches cover roughly a 30k x 30k
+  area; enumerating larger areas (tests, previews) thrashes them, so keep test areas around 16k-24k.
+- Variant tables live in `Families`; context comes first via trait affinities. Changing a family's trait list
+  changes which variants existing worlds roll (names and palettes move), so treat tables as world-breaking.

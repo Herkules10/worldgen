@@ -21,8 +21,9 @@ import com.herkules10.fantasyworldgen.engine.biome.BiomeType;
  * <p>
  * Options: {@code --seed N} (default 42), {@code --size N} blocks per side (default 1024), {@code --x N --z N} region
  * center (default 0, 0), {@code --scale N} blocks per pixel (default 1), {@code --sliceZ N} z of the cross-section
- * (default: center), {@code --name S}, {@code --out DIR}. Writes {@code <name>_map/height/slice.png} and
- * {@code <name>.json}. Same arguments always give identical files.
+ * (default: center), {@code --name S}, {@code --out DIR}. Writes {@code <name>_map/height/biome/fields/regions/slice.png},
+ * {@code <name>_regions.json} (every region in view with its traits) and {@code <name>.json}. Same arguments always give
+ * identical files.
  */
 public final class PreviewMain {
     private PreviewMain() {}
@@ -47,11 +48,15 @@ public final class PreviewMain {
         files.put("height", PreviewImages.write(PreviewImages.height(data), o.out.resolve(o.name + "_height.png")));
         files.put("biome", PreviewImages.write(PreviewImages.biome(data), o.out.resolve(o.name + "_biome.png")));
         files.put("fields", PreviewImages.write(PreviewImages.fields(data), o.out.resolve(o.name + "_fields.png")));
+        files.put("regions", PreviewImages.write(PreviewImages.regions(data), o.out.resolve(o.name + "_regions.png")));
         if (data.slice != null) files.put("slice", PreviewImages.write(PreviewImages.slice(data), o.out.resolve(o.name + "_slice.png")));
         Path json = o.out.resolve(o.name + ".json");
+        Path regionsJson = o.out.resolve(o.name + "_regions.json");
+        PreviewRegions.writeJson(data, regionsJson);
         writeSummary(data, files, seconds, json);
 
         files.values().forEach(p -> System.out.println("[preview] wrote " + p.toAbsolutePath()));
+        System.out.println("[preview] wrote " + regionsJson.toAbsolutePath());
         System.out.println("[preview] wrote " + json.toAbsolutePath());
         System.out.printf(Locale.ROOT, "[preview] sampled %d columns in %.2fs%n", data.pixels * data.pixels, seconds);
     }
@@ -71,6 +76,7 @@ public final class PreviewMain {
                 d.topBlock[i] = c.surfaceY() < WorldShape.SEA_LEVEL - 1 ? Block.WATER : TerrainEngine.block(c, c.surfaceY());
                 d.biome[i] = c.biome();
                 d.fields[i] = c.fields();
+                d.region[i] = engine.regions().regionAt(x, z, c.biome());
             }
         });
         if (d.slice != null) {
@@ -121,6 +127,7 @@ public final class PreviewMain {
             biomeSep = ", ";
         }
         s.append("},\n");
+        field(s, "regionList", "\"" + o.name + "_regions.json\"");
         s.append("  \"images\": {");
         String sep = "";
         for (Map.Entry<String, Path> e : files.entrySet()) {

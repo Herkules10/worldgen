@@ -21,6 +21,9 @@ import com.herkules10.fantasyworldgen.engine.WorldShape;
 import com.herkules10.fantasyworldgen.engine.biome.BiomeType;
 import com.herkules10.fantasyworldgen.engine.debug.HeightRamp;
 import com.herkules10.fantasyworldgen.engine.field.FieldSample;
+import com.herkules10.fantasyworldgen.engine.region.Region;
+import com.herkules10.fantasyworldgen.engine.variant.Axis;
+import com.herkules10.fantasyworldgen.engine.variant.Rarity;
 
 /**
  * The preview images. They deliberately match the in-game {@code runRender} images (same layout, height ramp and
@@ -31,6 +34,8 @@ final class PreviewImages {
     private static final int SLICE_SKY = 0xBFD9F2;
     private static final int SLICE_CAVE = 0x1E1E24;
     private static final int LEGEND_WIDTH = 280;
+    private static final int REGION_LEGEND_WIDTH = 520;
+    private static final Font REGION_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 12);
 
     private PreviewImages() {}
 
@@ -158,6 +163,82 @@ final class PreviewImages {
     }
 
     /**
+     * Regions: each one a shade of its biome's colour, with dark borders between regions and its place name at its
+     * centre (gold for rare, magenta for legendary). The legend on the right lists the largest regions with traits.
+     */
+    static BufferedImage regions(PreviewData d) {
+        int n = d.pixels;
+        java.util.List<PreviewRegions.Visible> visible = PreviewRegions.visible(d);
+        int legendRows = Math.min(visible.size(), Math.max(8, (n - 30) / 30));
+        BufferedImage img = new BufferedImage(n + REGION_LEGEND_WIDTH, Math.max(n, 30 + 30 * legendRows), BufferedImage.TYPE_INT_RGB);
+        for (int pz = 0; pz < n; pz++) {
+            for (int px = 0; px < n; px++) {
+                int i = pz * n + px;
+                long id = d.region[i].id();
+                float tone = 0.62f + 0.5f * (float) ((id >>> 40) & 0xFF) / 255f; // a stable shade per region
+                int rgb = scale(d.biome[i].debugColor(), tone * (0.8f + 0.2f * shade(d.groundY, n, px, pz, d.options.scale)));
+                boolean border = (px + 1 < n && d.region[i + 1].id() != id) || (pz + 1 < n && d.region[i + n].id() != id)
+                        || (px > 0 && d.region[i - 1].id() != id) || (pz > 0 && d.region[i - n].id() != id);
+                img.setRGB(px, pz, border ? 0x101010 : rgb);
+            }
+        }
+        Graphics2D g = graphics(img);
+        drawGrid(g, d);
+        g.setFont(REGION_FONT);
+        java.awt.FontMetrics fm = g.getFontMetrics();
+        for (PreviewRegions.Visible v : visible) {
+            if (v.share(d) < 0.002) continue;
+            Region r = v.region();
+            String text = (r.rarity() == Rarity.LEGENDARY ? "★ " : r.rarity() == Rarity.RARE ? "◆ " : "") + r.name();
+            int tx = (int) Math.round(v.meanPx()) - fm.stringWidth(text) / 2, ty = (int) Math.round(v.meanPz()) + fm.getAscent() / 2;
+            tx = Math.max(2, Math.min(n - fm.stringWidth(text) - 2, tx));
+            outlined(g, text, tx, ty, rarityColor(r.rarity()));
+        }
+        g.setColor(new Color(0x202020));
+        g.fillRect(n, 0, REGION_LEGEND_WIDTH, img.getHeight());
+        g.setFont(FONT);
+        int y = 18;
+        g.setColor(Color.WHITE);
+        g.drawString(String.format(Locale.ROOT, "%d regions in view (largest %d listed)", visible.size(), legendRows), n + 8, y);
+        y += 20;
+        for (int k = 0; k < legendRows; k++) {
+            PreviewRegions.Visible v = visible.get(k);
+            Region r = v.region();
+            g.setColor(new Color(r.biome().debugColor()));
+            g.fillRect(n + 8, y - 10, 12, 12);
+            g.setColor(rarityColor(r.rarity()));
+            g.drawString(String.format(Locale.ROOT, "%4.1f%%  %s  [%s]", v.share(d) * 100, r.name(), r.biome().id()), n + 26, y);
+            g.setColor(new Color(0xB0B0B0));
+            StringBuilder traits = new StringBuilder(r.rarity().id());
+            for (Axis axis : Axis.VALUES) {
+                if (r.variant().trait(axis) != null) traits.append(" · ").append(r.variant().trait(axis).id());
+            }
+            if (!r.context().tags().isEmpty()) traits.append("  (").append(String.join(", ", r.context().tags())).append(')');
+            g.drawString(traits.toString(), n + 26, y + 13);
+            y += 30;
+        }
+        g.dispose();
+        return img;
+    }
+
+    private static Color rarityColor(Rarity rarity) {
+        return switch (rarity) {
+            case COMMON -> Color.WHITE;
+            case RARE -> new Color(0xFFD24A);
+            case LEGENDARY -> new Color(0xFF5CF0);
+        };
+    }
+
+    private static void outlined(Graphics2D g, String text, int x, int y, Color color) {
+        g.setColor(Color.BLACK);
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) if (dx != 0 || dy != 0) g.drawString(text, x + dx, y + dy);
+        }
+        g.setColor(color);
+        g.drawString(text, x, y);
+    }
+
+    /**
      * The shared world fields as four half-resolution panels: uplift, moisture (with the wind direction), heat and
      * corruption. Water is darkened so coastlines stay readable.
      */
@@ -230,6 +311,11 @@ final class PreviewImages {
             case PODZOL -> 0x815631;
             case PACKED_ICE -> 0xA0A0FF;
             case MUD -> 0x575C5C;
+            case ANDESITE -> 0x707070;
+            case GRANITE -> 0x976D4D;
+            case TERRACOTTA, RED_SANDSTONE -> 0xD87F33;
+            case BASALT -> 0x191919;
+            case QUARTZ_BLOCK -> 0xFFFCF5;
         };
     }
 

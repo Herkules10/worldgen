@@ -22,7 +22,13 @@ public enum Block {
     DIORITE,
     PODZOL,
     PACKED_ICE,
-    MUD;
+    MUD,
+    ANDESITE,
+    GRANITE,
+    TERRACOTTA,
+    RED_SANDSTONE,
+    BASALT,
+    QUARTZ_BLOCK;
 
     private static final Block[] VALUES = values();
 

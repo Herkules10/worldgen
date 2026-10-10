@@ -39,6 +39,12 @@ public final class BlockMapping {
             case PODZOL -> Blocks.PODZOL.defaultBlockState();
             case PACKED_ICE -> Blocks.PACKED_ICE.defaultBlockState();
             case MUD -> Blocks.MUD.defaultBlockState();
+            case ANDESITE -> Blocks.ANDESITE.defaultBlockState();
+            case GRANITE -> Blocks.GRANITE.defaultBlockState();
+            case TERRACOTTA -> Blocks.TERRACOTTA.defaultBlockState();
+            case RED_SANDSTONE -> Blocks.RED_SANDSTONE.defaultBlockState();
+            case BASALT -> Blocks.BASALT.defaultBlockState();
+            case QUARTZ_BLOCK -> Blocks.QUARTZ_BLOCK.defaultBlockState();
         };
     }
 }
