@@ -32,14 +32,22 @@ import com.herkules10.fantasyworldgen.engine.variant.Rarity;
 /** Regions on a real world: partition, determinism, rarity and context, checked over a 16k x 16k area. */
 class RegionMapTest {
     private static final long SEED = 42;
+    private static final long SECOND_SEED = 1337;
     private static final int HALF = 8192;
     private static TerrainEngine engine;
     private static List<Region> regions;
+    /**
+     * Regions of two seeds, for the frequency checks: one 16k x 16k area holds only a handful of ranges, too few to
+     * judge shares by, and a larger area would thrash the region caches.
+     */
+    private static List<Region> sample;
 
     @BeforeAll
     static void enumerate() {
         engine = new TerrainEngine(SEED);
         regions = engine.regions().regionsIn(-HALF, -HALF, HALF - 1, HALF - 1);
+        sample = new ArrayList<>(regions);
+        sample.addAll(new TerrainEngine(SECOND_SEED).regions().regionsIn(-HALF, -HALF, HALF - 1, HALF - 1));
     }
 
     private static List<Region> of(BiomeType biome) {
@@ -154,14 +162,14 @@ class RegionMapTest {
     @Test
     void rarityTiersHaveTheirFrequencies() {
         int withTraits = 0, rare = 0, legendary = 0;
-        for (Region r : regions) {
+        for (Region r : sample) {
             if (r.variant().traits().isEmpty()) continue;
             withTraits++;
             if (r.rarity() == Rarity.RARE) rare++;
             if (r.rarity() == Rarity.LEGENDARY) legendary++;
         }
         double rareShare = rare / (double) withTraits;
-        assertTrue(withTraits > 200, "too few regions with traits: " + withTraits);
+        assertTrue(withTraits > 300, "too few regions with traits: " + withTraits);
         assertTrue(rareShare > 1 / 60.0 && rareShare < 1 / 12.0, "rare share " + rareShare + " of " + withTraits);
         assertTrue(legendary < rare / 3.0, legendary + " legendary vs " + rare + " rare");
 
@@ -216,7 +224,8 @@ class RegionMapTest {
         }
         // Cold ranges are mostly glaciated, mild ones mostly not.
         int coldGlaciated = 0, cold = 0, mildGlaciated = 0, mild = 0;
-        for (Region r : of(BiomeType.SPINE)) {
+        for (Region r : sample) {
+            if (r.biome() != BiomeType.SPINE) continue;
             if (r.context().cold() > 0.8) {
                 cold++;
                 if (r.variant().has("glaciated")) coldGlaciated++;
